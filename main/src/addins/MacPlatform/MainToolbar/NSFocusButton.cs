@@ -33,11 +33,20 @@ namespace MonoDevelop.MacIntegration.MainToolbar
 		public override void KeyDown (NSEvent theEvent)
 		{
 			var key = theEvent.Characters.FirstOrDefault ();
-			if (NextKeyView != null && key == '\t') {
-				Window.MakeFirstResponder (NextKeyView);
+			var nextKeyView = GetNextFocusable (NextKeyView);
+			if (nextKeyView != null && key == '\t') {
+				Window.MakeFirstResponder (nextKeyView);
 				return;
 			}
 			base.KeyDown (theEvent);
+		}
+
+		NSView GetNextFocusable(NSView view)
+		{
+			if (view == null || view is NSFocusButton || view is NSSearchField || view is NSPathControl)
+				return view;
+			
+			return GetNextFocusable (view.NextKeyView);
 		}
 	}
 }

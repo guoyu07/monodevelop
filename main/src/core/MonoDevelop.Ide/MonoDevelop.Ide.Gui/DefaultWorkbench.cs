@@ -1135,10 +1135,13 @@ namespace MonoDevelop.Ide.Gui
 			return base.OnFocusInEvent (evnt);
 		}
 
+		Widget lastFocusedWidget;
 		protected override void OnSetFocus (Widget focus)
 		{
-			if (focus.GetType ().Name.Contains ("TextArea"))
+			if (focus != null && lastFocusedWidget != null && focus.GetType ().Name.Contains ("TextArea")) 
 				toolbar.ToolbarView.Focus ();
+			
+			lastFocusedWidget = focus;
 			base.OnSetFocus (focus);
 		}
 
