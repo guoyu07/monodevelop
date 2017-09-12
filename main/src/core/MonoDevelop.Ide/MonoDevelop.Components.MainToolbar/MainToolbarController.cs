@@ -699,7 +699,16 @@ namespace MonoDevelop.Components.MainToolbar
 
 		void HandleSearchEntryKeyPressed (object sender, Xwt.KeyEventArgs e)
 		{
-			if (e.Key == Xwt.Key.Escape) {
+			var searchField = sender as AppKit.NSSearchField;
+			bool isTabPressedInsideSearchBar = false;
+
+			if(searchField != null)
+			{
+				var isNSTextView = searchField.Window.FirstResponder is AppKit.NSTextView;
+				isTabPressedInsideSearchBar = (e.Key == Xwt.Key.Tab && isNSTextView);
+			}
+
+			if (e.Key == Xwt.Key.Escape || isTabPressedInsideSearchBar) {
 				DestroyPopup();
 				var doc = IdeApp.Workbench.ActiveDocument;
 				if (doc != null) {
