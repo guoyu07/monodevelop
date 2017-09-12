@@ -316,7 +316,8 @@ namespace MonoDevelop.MacIntegration.MainToolbar
 				public bool HasFocus { set; get; }
 				public override void DrawWithFrame (CGRect cellFrame, NSView inView)
 				{
-					if (HasFocus) {
+					var isPathSelectorViewResponder = inView.Window.FirstResponder is PathSelectorView;
+					if (HasFocus && isPathSelectorViewResponder ) {
 						var focusRect = new CGRect (cellFrame.X , cellFrame.Y + 3, cellFrame.Width+2, cellFrame.Height - 6);
 						var path = NSBezierPath.FromRoundedRect (focusRect, 3, 3);
 						path.LineWidth = 2f;
