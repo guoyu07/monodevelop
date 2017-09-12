@@ -17,7 +17,7 @@ DEP[0]=md-addins
 DEP_NAME[0]=MDADDINS
 DEP_PATH[0]=${top_srcdir}/../md-addins
 DEP_MODULE[0]=git@github.com:xamarin/md-addins.git
-DEP_NEEDED_VERSION[0]=64a5c46ac3b06ead69e75a60f3db15d963ff79b3
+DEP_NEEDED_VERSION[0]=b41bcfdf8b74a78f84739e663584585d6f540d71
 DEP_BRANCH_AND_REMOTE[0]="xammac-full-assemblies-in-references-dialog origin/xammac-full-assemblies-in-references-dialog"
 
 # heap-shot
