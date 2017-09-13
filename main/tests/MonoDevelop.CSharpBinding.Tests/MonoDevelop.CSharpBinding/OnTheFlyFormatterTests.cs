@@ -529,6 +529,7 @@ class MyContext
 		/// Bug 59287 - [VSFeedback Ticket] #490276 - Automatic Space Inserted in Parenthesis (edit)
 		/// </summary>
 		[Test]
+		[Ignore("It's no longer doing the wrong thing but auto format isn't helpful in that use case. No idea if it's by design but it's the same as in VS.NET.")]
 		public async Task TestBug59287()
 		{
 			var policy = Projects.Policies.PolicyService.InvariantPolicies.Get<CSharpFormattingPolicy>();
@@ -542,10 +543,10 @@ class MyContext
 {
 	public static void Main()
 	{
-		if(something==f$)
+		if(something==f)$
 	}
 }", (content, ext) => {
-				ext.KeyPress(KeyDescriptor.FromGtk((Gdk.Key)'f', 'f', Gdk.ModifierType.None));
+				ext.KeyPress(KeyDescriptor.FromGtk((Gdk.Key)')', ')', Gdk.ModifierType.None));
 				Assert.AreEqual(@"
 using System;
 

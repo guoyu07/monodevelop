@@ -562,7 +562,7 @@ namespace MonoDevelop.CSharp.Formatting
 			return result;
 		}
 
-		void HandleOnTheFlyFormatting (KeyDescriptor descriptor)
+		async void HandleOnTheFlyFormatting (KeyDescriptor descriptor)
 		{
 			if (descriptor.KeyChar == '{')
 				return;
@@ -577,9 +577,9 @@ namespace MonoDevelop.CSharp.Formatting
 				if (!skipFormatting && service.SupportsFormattingOnTypedCharacter (document, descriptor.KeyChar)) {
 					var caretPosition = Editor.CaretOffset;
 					var token = CSharpEditorFormattingService.GetTokenBeforeTheCaretAsync (document, caretPosition, default(CancellationToken)).Result;
-					if (token.IsMissing || !service.ValidSingleOrMultiCharactersTokenKind (descriptor.KeyChar, token.Kind ()) || token.IsKind (SyntaxKind.EndOfFileToken) || token.IsKind (SyntaxKind.None))
+					if (token.IsMissing || !CSharpEditorFormattingService.ValidSingleOrMultiCharactersTokenKind (descriptor.KeyChar, token.Kind ()) || token.IsKind (SyntaxKind.EndOfFileToken) || token.IsKind (SyntaxKind.None))
 						return;
-					if (CSharpEditorFormattingService.TokenShouldNotFormatOnTypeChar (token))
+					if (await CSharpEditorFormattingService.TokenShouldNotFormatOnTypeCharAsync (token, default (CancellationToken)))
 						return;
 					using (var undo = Editor.OpenUndoGroup ()) {
 						if (OnTheFlyFormatting && Editor != null && Editor.EditMode == EditMode.Edit) {
