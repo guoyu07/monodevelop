@@ -57,12 +57,47 @@ namespace MonoDevelop.CSharp.Formatting
 			Format (policyParent, mimeTypeChain, editor, context, startOffset, endOffset, exact, optionSet: optionSet);
 		}
 
-		public static void FormatStatmentAt (TextEditor editor, DocumentContext context, MonoDevelop.Ide.Editor.DocumentLocation location, OptionSet optionSet = null)
+		public async static void FormatStatmentAt (TextEditor editor, DocumentContext context, MonoDevelop.Ide.Editor.DocumentLocation location, OptionSet optionSet = null)
 		{
 			var offset = editor.LocationToOffset (location);
 			var policyParent = context.Project != null ? context.Project.Policies : PolicyService.DefaultPolicies;
 			var mimeTypeChain = DesktopService.GetMimeTypeInheritanceChain (CSharpFormatter.MimeType);
-			Format (policyParent, mimeTypeChain, editor, context, offset, offset, false, true, optionSet: optionSet);
+
+			var analysisDocument = context.AnalysisDocument;
+			if (analysisDocument == null)
+				return;
+			using (var undo = editor.OpenUndoGroup()) {
+				try {
+					var syntaxTree = await analysisDocument.GetSyntaxTreeAsync();
+					var root = syntaxTree.GetRoot();
+					bool smartIndentOnly = false;
+					var token = root.FindToken(offset);
+					smartIndentOnly = token.IsKind(SyntaxKind.CloseBraceToken);
+
+					if (optionSet == null) {
+						var policy = policyParent.Get<CSharpFormattingPolicy>(mimeTypeChain);
+						var textPolicy = policyParent.Get<TextStylePolicy>(mimeTypeChain);
+						optionSet = policy.CreateOptions(textPolicy);
+					}
+					var rules = Formatter.GetDefaultFormattingRules(analysisDocument);
+					IList<TextChange> changes;
+					if (smartIndentOnly) {
+						// if we're only doing smart indent, then ignore all edits to this token that occur before
+						// the span of the token. They're irrelevant and may screw up other code the user doesn't 
+						// want touched.
+						var tokenEdits = await CSharpEditorFormattingService.FormatTokenAsync(analysisDocument, token, rules, default(CancellationToken)).ConfigureAwait(false);
+						changes = tokenEdits.Where(t => t.Span.Start >= token.FullSpan.Start).ToList();
+					} else {
+						changes = await CSharpEditorFormattingService.FormatRangeAsync(analysisDocument, token, rules, default(CancellationToken)).ConfigureAwait(false);
+						if (changes.Count == 0)
+							changes = await CSharpEditorFormattingService.FormatTokenAsync(analysisDocument, token, rules, default(CancellationToken)).ConfigureAwait(false);
+					}
+
+					editor.ApplyTextChanges(changes);
+				} catch (Exception e) {
+					LoggingService.LogError("Error in on the fly formatter", e);
+				}
+			}
 		}
 
 		static async void Format (PolicyContainer policyParent, IEnumerable<string> mimeTypeChain, TextEditor editor, DocumentContext context, int startOffset, int endOffset, bool exact, bool formatLastStatementOnly = false, OptionSet optionSet = null)
@@ -81,10 +116,8 @@ namespace MonoDevelop.CSharp.Formatting
 				try {
 					var syntaxTree = await analysisDocument.GetSyntaxTreeAsync ();
 					var root = syntaxTree.GetRoot ();
-					bool smartIndentOnly = false;
-					var token = root.FindToken(endOffset);
-					smartIndentOnly = token.IsKind(SyntaxKind.CloseBraceToken);
 					if (formatLastStatementOnly) {
+						var token = root.FindToken (endOffset);
 						var tokens = Microsoft.CodeAnalysis.CSharp.Utilities.FormattingRangeHelper.FindAppropriateRange (token);
 						if (tokens.HasValue) {
 							span = new TextSpan (tokens.Value.Item1.SpanStart, editor.CaretOffset - tokens.Value.Item1.SpanStart);
@@ -101,21 +134,8 @@ namespace MonoDevelop.CSharp.Formatting
 						optionSet = policy.CreateOptions (textPolicy);
 					}
 					var rules = Formatter.GetDefaultFormattingRules (analysisDocument);
-					IList<TextChange> changes;
-
-					if (smartIndentOnly) {
-						// if we're only doing smart indent, then ignore all edits to this token that occur before
-						// the span of the token. They're irrelevant and may screw up other code the user doesn't 
-						// want touched.
-						var tokenEdits = await CSharpEditorFormattingService.FormatTokenAsync(analysisDocument, token, rules, default(CancellationToken)).ConfigureAwait(false);
-						changes = tokenEdits.Where(t => t.Span.Start >= token.FullSpan.Start).ToList();
-					} else {
-						changes = await CSharpEditorFormattingService.FormatRangeAsync(analysisDocument, token, rules, default(CancellationToken)).ConfigureAwait(false);
-						if (changes.Count == 0)
-							changes = await CSharpEditorFormattingService.FormatTokenAsync(analysisDocument, token, rules, default(CancellationToken)).ConfigureAwait(false);
-					}
-
-					editor.ApplyTextChanges(changes);
+					var changes = Formatter.GetFormattedTextChanges (root, SpecializedCollections.SingletonEnumerable (span), context.RoslynWorkspace, optionSet, rules, default(CancellationToken));
+					editor.ApplyTextChanges (changes);
 				} catch (Exception e) {
 					LoggingService.LogError ("Error in on the fly formatter", e);
 				}

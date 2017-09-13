@@ -584,13 +584,7 @@ namespace MonoDevelop.CSharp.Formatting
 					using (var undo = Editor.OpenUndoGroup ()) {
 						if (OnTheFlyFormatting && Editor != null && Editor.EditMode == EditMode.Edit) {
 							var oldVersion = Editor.Version;
-							int start = token.SpanStart;
-							var parentStatement = token.Parent.AncestorsAndSelf().OfType<StatementSyntax>().FirstOrDefault();
-							if (parentStatement != null)
-								start = parentStatement.SpanStart;
-							Console.WriteLine(start +"-"+ Editor.CaretOffset);
-							OnTheFlyFormatter.Format(Editor, DocumentContext, start, Editor.CaretOffset, exact:true, optionSet: optionSet);
-							//OnTheFlyFormatter.FormatStatmentAt (Editor, DocumentContext, Editor.CaretLocation, optionSet: optionSet);
+							OnTheFlyFormatter.FormatStatmentAt (Editor, DocumentContext, Editor.CaretLocation, optionSet: optionSet);
 							if (oldVersion.CompareAge (Editor.Version) != 0)
 								CompletionWindowManager.HideWindow ();
 						}
